@@ -4,10 +4,42 @@ from fastapi.responses import JSONResponse
 from app.config import SUPABASE_URL, SUPABASE_KEY, supabase
 from app.routers import auth, public, protected
 
+tags_metadata = [
+    {
+        "name": "Public",
+        "description": "Endpoints accessible by anyone without authentication.",
+    },
+    {
+        "name": "Authentication",
+        "description": "User registration (`/signup`), login (`/login`), and authenticated logout (`/logout`).",
+    },
+    {
+        "name": "Protected",
+        "description": "Secured endpoints requiring a valid Supabase JWT Bearer token.",
+    },
+    {
+        "name": "Health Check",
+        "description": "System health and Supabase connection readiness.",
+    },
+]
+
 app = FastAPI(
     title="Auth Login & Protect API",
-    description="A secure FastAPI authentication backend integrated with Supabase Auth.",
+    description="""
+# Auth Login & Protect API (FlyRank Backend Track - Assignment A4)
+
+A secure backend REST API integrated with **Supabase Auth** as the Identity Provider (IdP).
+
+## Authentication Flow:
+1. **Register**: Send email and password to `POST /auth/signup`.
+2. **Log in**: Send credentials to `POST /auth/login` to receive your **JWT Access Token**.
+3. **Authorize in Swagger**: Click the **Authorize 🔓** button at the top right, paste your JWT token, and click **Authorize**.
+4. **Access Protected Routes**: Test `GET /protected/profile`, `GET /protected/dashboard`, or `POST /auth/logout`.
+    """,
     version="1.0.0",
+    openapi_tags=tags_metadata,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 @app.exception_handler(HTTPException)
@@ -32,7 +64,7 @@ app.include_router(public.router)
 app.include_router(auth.router)
 app.include_router(protected.router)
 
-@app.get("/", tags=["Health Check"])
+@app.get("/", tags=["Health Check"], summary="Server Health Check")
 def root():
     """Health check endpoint to verify server status and Supabase connection readiness."""
     supabase_configured = bool(SUPABASE_URL and SUPABASE_KEY and supabase is not None)

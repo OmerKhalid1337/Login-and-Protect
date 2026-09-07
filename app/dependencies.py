@@ -1,10 +1,14 @@
-from fastapi import Header, HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, Dict, Any
 from app.config import supabase
 
-# HTTPBearer with auto_error=False allows us to provide exact assignment-specified JSON error messages
-bearer_scheme = HTTPBearer(auto_error=False)
+# HTTPBearer scheme configured for Swagger UI OpenAPI documentation
+bearer_scheme = HTTPBearer(
+    auto_error=False,
+    scheme_name="BearerAuth",
+    description="Enter your Supabase JWT access token as: `Bearer <token>` (or paste the JWT token directly in the value field)"
+)
 
 def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)) -> Dict[str, Any]:
     """
@@ -13,7 +17,7 @@ def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depen
     2. Rejects missing/malformed tokens with 401 {"error": "Access token required"}.
     3. Calls Supabase Auth to cryptographically verify the JWT.
     4. Rejects invalid/expired/tampered tokens with 401 {"error": "Invalid or expired token"}.
-    5. Returns the verified user payload to the route handler.
+    5. Injects the verified user payload to the route handler.
     """
     if not credentials or not credentials.credentials or credentials.scheme.lower() != "bearer":
         raise HTTPException(
