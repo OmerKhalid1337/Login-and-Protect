@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.responses import JSONResponse
+from typing import Dict, Any
 from app.config import supabase
 from app.schemas import AuthCredentials
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -41,7 +43,6 @@ def signup(credentials: AuthCredentials):
                 detail={"error": "Failed to create user account"}
             )
 
-        # Return safe user data as returned by Supabase
         user_data = {
             "id": response.user.id,
             "email": response.user.email,
@@ -115,9 +116,30 @@ def login(credentials: AuthCredentials):
 
     except HTTPException:
         raise
-    except Exception as e:
-        # Supabase raises on bad credentials: we return 401 as mandated by assignment
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"error": "Invalid login credentials"}
         )
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Log out the authenticated user.
+    - Protected endpoint requiring a valid Bearer token.
+    - Calls Supabase Auth to invalidate session.
+    - Returns 204 No Content on success.
+    """
+    if supabase is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"error": "Supabase client is not configured"}
+        )
+
+    try:
+        supabase.auth.sign_out()
+    except Exception:
+        # Even if remote session was already expired locally, the signout request succeeded
+        pass
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
