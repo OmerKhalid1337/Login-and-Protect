@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.config import SUPABASE_URL, SUPABASE_KEY, supabase
-from app.routers import auth
+from app.routers import auth, public, protected
 
 app = FastAPI(
     title="Auth Login & Protect API",
@@ -27,8 +27,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"error": "Missing or invalid request payload", "details": exc.errors()},
     )
 
-# Include Auth routes
+# Include routers
+app.include_router(public.router)
 app.include_router(auth.router)
+app.include_router(protected.router)
 
 @app.get("/", tags=["Health Check"])
 def root():
